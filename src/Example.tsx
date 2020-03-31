@@ -86,7 +86,7 @@ export class Example extends FormClass<IPersonInputModel> implements IPersonInpu
   })
   carBrand: CarBrand;
 
-  fetchData(): Promise<IPersonInputModel> {
+  feedDataAsync(): Promise<IPersonInputModel> {
     const mockData = {
       firstName: "Toine",
       lastName: "koene",
@@ -101,14 +101,11 @@ export class Example extends FormClass<IPersonInputModel> implements IPersonInpu
   }
 
   async onSubmit(fields: IPersonInputModel): Promise<boolean> {
-    const newData = await this.fetchData();
+    const newData = await this.feedDataAsync();
     this.setState({
       formData: newData
     });
+    console.log(fields);
     return Promise.resolve(true);
-  }
-
-  buildForm(fields: IPersonInputModel): JSX.Element {
-    throw new Error("Method not implemented.");
   }
 }

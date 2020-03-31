@@ -5,11 +5,12 @@ function App() {
   return (
     <div className="App">
       <Example>
-        {fields => {
+        {({ fields, submitBtn }) => {
           return (
             <div>
               <div>{fields.firstName}</div>
-              <div>{fields.lastName}</div>
+              <div>{fields.gender}</div>
+              <div>{submitBtn}</div>
             </div>
           );
         }}

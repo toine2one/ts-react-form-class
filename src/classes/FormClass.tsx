@@ -1,15 +1,28 @@
-import { IFormFieldsBuildData, IForm, IField, IFields, ITextFieldBuildData } from "../interfaces/IForm";
+import {
+  IFormFieldsBuildData,
+  IForm,
+  IField,
+  IFields,
+  ITextFieldBuildData,
+  IRadioFieldBuildData
+} from "../interfaces/IForm";
 import React, { Component } from "react";
 import { Form } from "../components/form/Form";
 import { TextField } from "../components/textField/TextField";
+import { RadioField } from "../components/radioField/RadioField";
 
 interface IFormClassState<T> {
   formData: T;
   formFields: any;
 }
 
+interface IFormValues<T> {
+  fields: T;
+  submitBtn: JSX.Element;
+}
+
 interface IFormClassProps<T> {
-  children: (fields: T) => JSX.Element;
+  children: (formValues: IFormValues<T>) => JSX.Element;
 }
 
 export const fieldMetadataKey = Symbol("formField");
@@ -22,7 +35,7 @@ export abstract class FormClass<T> extends Component<IFormClassProps<T>, IFormCl
   abstract formName: string;
   formFieldsBuildData: IFormFieldsBuildData = {};
 
-  abstract fetchData(): Promise<T>;
+  abstract feedDataAsync(): Promise<T>;
   abstract onInput(fieldName: string, data: IField): void;
   abstract onSubmit(fields: T): Promise<boolean>;
 
@@ -35,16 +48,15 @@ export abstract class FormClass<T> extends Component<IFormClassProps<T>, IFormCl
   }
 
   componentDidMount() {
-    this.getFormFieldsData();
-    console.log(this.formFieldsBuildData);
-    this.SetPropertiesToElements();
+    this.getFormFieldsBuildData();
+    this.assignElementsToProperties();
   }
 
   private toUniqueFieldProp(prop: string) {
     return `${this.formName}-${prop}`;
   }
 
-  private getFormFieldsData = (): any => {
+  private getFormFieldsBuildData = (): any => {
     const formFieldsBuildData: IFormFieldsBuildData = {};
 
     Object.keys(this).forEach(key => {
@@ -58,7 +70,7 @@ export abstract class FormClass<T> extends Component<IFormClassProps<T>, IFormCl
     return formFieldsBuildData;
   };
 
-  private SetPropertiesToElements() {
+  private assignElementsToProperties() {
     const fieldsObj: any = {};
     Object.keys(this).forEach(key => {
       const fieldMetaData = getField(this, key);
@@ -69,6 +81,10 @@ export abstract class FormClass<T> extends Component<IFormClassProps<T>, IFormCl
           case "Text":
             fieldBuildData = fieldBuildData as ITextFieldBuildData;
             fieldsObj[key] = this.renderTextInputElement(this.toUniqueFieldProp(key), fieldBuildData);
+            break;
+          case "Radio":
+            fieldBuildData = fieldBuildData as IRadioFieldBuildData;
+            fieldsObj[key] = this.renderRadioInputElement(this.toUniqueFieldProp(key), fieldBuildData);
             break;
         }
       }
@@ -83,6 +99,16 @@ export abstract class FormClass<T> extends Component<IFormClassProps<T>, IFormCl
       <div>
         <label>{buildData.label}</label>
         <TextField name={uniqueKey} buildData={buildData} />
+      </div>
+    );
+  }
+
+  renderRadioInputElement(uniqueKey: string, buildData: IRadioFieldBuildData): JSX.Element {
+    console.log(buildData);
+    return (
+      <div>
+        <label>{buildData.label}</label>
+        <RadioField name={uniqueKey} options={buildData.options} />
       </div>
     );
   }
@@ -104,19 +130,9 @@ export abstract class FormClass<T> extends Component<IFormClassProps<T>, IFormCl
     });
   }
 
-  abstract buildForm(fields: T): JSX.Element;
-
-  renderCustomBuildForm = () => {
-    try {
-      return this.buildForm(this.state.formFields);
-    } catch (error) {
-      return null;
-    }
-  };
-
   build = async (): Promise<void> => {
-    this.formFieldsBuildData = this.getFormFieldsData();
-    const initialData = await this.fetchData();
+    this.formFieldsBuildData = this.getFormFieldsBuildData();
+    const initialData = await this.feedDataAsync();
     this.setFormData(initialData);
     return Promise.resolve();
   };
@@ -125,7 +141,12 @@ export abstract class FormClass<T> extends Component<IFormClassProps<T>, IFormCl
     return (
       <div>
         <Form data={this.createFieldDataObjects()} FormClass={this}>
-          {this.state.formFields ? this.props.children(this.state.formFields) : null}
+          {this.state.formFields
+            ? this.props.children({
+                fields: this.state.formFields,
+                submitBtn: <button onClick={() => this.onSubmit(this.state.formFields)}>Submit</button>
+              })
+            : null}
         </Form>
       </div>
     );

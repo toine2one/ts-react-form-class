@@ -52,5 +52,5 @@ export interface IForm<T = any> {
   build(): Promise<void>;
   onInput(fieldName: string, data: IField): void;
   onSubmit(fields: T): Promise<boolean>;
-  fetchData(): Promise<T>;
+  feedDataAsync(): Promise<T>;
 }
