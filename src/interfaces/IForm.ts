@@ -45,12 +45,3 @@ export interface ISelectBuildData {
 export interface IFormFieldsBuildData {
   [key: string]: ITextFieldBuildData | IRadioFieldBuildData;
 }
-
-export interface IForm<T = any> {
-  formName: string;
-  formFieldsBuildData: IFormFieldsBuildData;
-  build(): Promise<void>;
-  onInput(fieldName: string, data: IField): void;
-  onSubmit(fields: T): Promise<boolean>;
-  feedDataAsync(): Promise<T>;
-}

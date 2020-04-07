@@ -1,124 +1,125 @@
 import {
   IFormFieldsBuildData,
-  IForm,
   IField,
   IFields,
   ITextFieldBuildData,
-  IRadioFieldBuildData
+  IRadioFieldBuildData,
+  ISelectBuildData,
 } from "../interfaces/IForm";
 import React, { Component } from "react";
-import { Form } from "../components/form/Form";
+import { Form, FormContext } from "../components/form/Form";
 import { TextField } from "../components/textField/TextField";
 import { RadioField } from "../components/radioField/RadioField";
+import { SelectField } from "../components/selectField/SelectField";
 
-interface IFormClassState<T> {
-  formData: T;
-  formFields: any;
+interface IFormBuilderState<T> {
+  formData: any;
+  formOutput: IFormPresentation<T>;
+  fieldPresentations: { [P in keyof T]: IFieldPresentation };
 }
 
-interface IFormValues<T> {
-  fields: T;
-  submitBtn: JSX.Element;
+interface IFieldPresentation {
+  label: string;
+  value?: string | number;
+  error?: string;
+  element: JSX.Element;
+  hasChanged?: boolean;
+  hasError?: boolean;
 }
 
-interface IFormClassProps<T> {
-  children: (formValues: IFormValues<T>) => JSX.Element;
+interface IFormPresentation<T> {
+  fields: { [P in keyof T]: IFieldPresentation };
+  submitAction: Function;
+  submitActionButton: JSX.Element;
+}
+
+interface IFormBuilderProps<T> {
+  children: (formValues: IFormPresentation<T>) => JSX.Element;
 }
 
 export const fieldMetadataKey = Symbol("formField");
 
-export function getField(target: any, propertyKey: string) {
+export function getFieldMetaData(target: any, propertyKey: string) {
   return Reflect.getMetadata(fieldMetadataKey, target, propertyKey);
 }
 
-export abstract class FormClass<T> extends Component<IFormClassProps<T>, IFormClassState<T>> implements IForm<T> {
+export abstract class FormBuilder<T> extends Component<IFormBuilderProps<T>, IFormBuilderState<T>> {
   abstract formName: string;
-  formFieldsBuildData: IFormFieldsBuildData = {};
+  private formFieldsBuildData: IFormFieldsBuildData = {};
 
   abstract feedDataAsync(): Promise<T>;
-  abstract onInput(fieldName: string, data: IField): void;
-  abstract onSubmit(fields: T): Promise<boolean>;
+  abstract onInput?(fieldName: string, data: IField): void;
+  abstract onSubmit(fields: {}): Promise<boolean>;
 
   constructor(props: any) {
     super(props);
     this.state = {
+      fieldPresentations: null,
+      formOutput: null,
       formData: null,
-      formFields: null
     };
   }
 
-  componentDidMount() {
-    this.getFormFieldsBuildData();
-    this.assignElementsToProperties();
-  }
-
-  private toUniqueFieldProp(prop: string) {
-    return `${this.formName}-${prop}`;
-  }
-
-  private getFormFieldsBuildData = (): any => {
+  private GetMetaDataFromProperties = (): any => {
     const formFieldsBuildData: IFormFieldsBuildData = {};
 
-    Object.keys(this).forEach(key => {
-      const fieldMetaData = getField(this, key);
+    Object.keys(this).forEach((key) => {
+      const fieldMetaData = getFieldMetaData(this, key);
       if (fieldMetaData) {
-        formFieldsBuildData[this.toUniqueFieldProp(key)] = fieldMetaData;
+        formFieldsBuildData[key] = fieldMetaData;
       }
     });
 
     this.formFieldsBuildData = formFieldsBuildData;
-    return formFieldsBuildData;
   };
 
-  private assignElementsToProperties() {
-    const fieldsObj: any = {};
-    Object.keys(this).forEach(key => {
-      const fieldMetaData = getField(this, key);
+  private createFieldPresentationObjects() {
+    const fieldsObj: { [key: string]: IFieldPresentation } = {};
 
-      if (fieldMetaData) {
-        let fieldBuildData = this.formFieldsBuildData[this.toUniqueFieldProp(key)];
+    if (this.formFieldsBuildData) {
+      for (let key in this.formFieldsBuildData) {
+        let fieldBuildData = this.formFieldsBuildData[key];
         switch (fieldBuildData.type) {
           case "Text":
             fieldBuildData = fieldBuildData as ITextFieldBuildData;
-            fieldsObj[key] = this.renderTextInputElement(this.toUniqueFieldProp(key), fieldBuildData);
+            fieldsObj[key] = {
+              label: fieldBuildData.label,
+              element: <TextField name={key} buildData={fieldBuildData} />,
+            };
             break;
           case "Radio":
             fieldBuildData = fieldBuildData as IRadioFieldBuildData;
-            fieldsObj[key] = this.renderRadioInputElement(this.toUniqueFieldProp(key), fieldBuildData);
+            fieldsObj[key] = {
+              label: fieldBuildData.label,
+              element: <RadioField name={key} buildData={fieldBuildData} />,
+            };
+            break;
+          case "Select":
+            fieldBuildData = fieldBuildData as ISelectBuildData;
+            fieldsObj[key] = {
+              label: fieldBuildData.label,
+              element: <SelectField name={key} buildData={fieldBuildData} />,
+            };
             break;
         }
       }
-    });
+    }
+
     this.setState({
-      formFields: fieldsObj
+      fieldPresentations: {
+        ...this.state.fieldPresentations,
+        ...fieldsObj,
+      },
     });
-  }
-
-  renderTextInputElement(uniqueKey: string, buildData: ITextFieldBuildData): JSX.Element {
-    return (
-      <div>
-        <label>{buildData.label}</label>
-        <TextField name={uniqueKey} buildData={buildData} />
-      </div>
-    );
-  }
-
-  renderRadioInputElement(uniqueKey: string, buildData: IRadioFieldBuildData): JSX.Element {
-    console.log(buildData);
-    return (
-      <div>
-        <label>{buildData.label}</label>
-        <RadioField name={uniqueKey} options={buildData.options} />
-      </div>
-    );
   }
 
   private createFieldDataObjects = (): IFields => {
     const fields: IFields = {};
+
     for (let key in this.state.formData) {
-      fields[this.toUniqueFieldProp(key)] = {
+      fields[key] = {
         value: this.state.formData[key],
-        error: null
+        error: null,
       };
     }
     return fields;
@@ -126,27 +127,77 @@ export abstract class FormClass<T> extends Component<IFormClassProps<T>, IFormCl
 
   protected setFormData(formData: T) {
     this.setState({
-      formData
+      formData,
     });
   }
 
   build = async (): Promise<void> => {
-    this.formFieldsBuildData = this.getFormFieldsBuildData();
+    this.GetMetaDataFromProperties();
+    this.createFieldPresentationObjects();
     const initialData = await this.feedDataAsync();
     this.setFormData(initialData);
     return Promise.resolve();
   };
 
+  componentDidMount() {
+    this.build();
+  }
+
+  fieldHasChangedCheck = (serverValue: any, inputValue: any): boolean => {
+    return serverValue !== inputValue;
+  };
+
+  fieldHasErrorCheck = (error: string): boolean => {
+    if (error !== null && error !== undefined) {
+      return error.length ? true : false;
+    } else {
+      return false;
+    }
+  };
+
+  setFieldPresentationValues = (fieldPresentations: { [P in keyof T]: IFieldPresentation }, fieldsData: IFields) => {
+    for (let key in fieldPresentations) {
+      if (fieldsData[key]) {
+        fieldPresentations[key].value = fieldsData[key].value;
+        fieldPresentations[key].error = fieldsData[key].error;
+        fieldPresentations[key].hasError = this.fieldHasErrorCheck(fieldsData[key].error);
+        fieldPresentations[key].hasChanged = this.fieldHasChangedCheck(this.state.formData[key], fieldsData[key].value);
+      }
+    }
+    return fieldPresentations;
+  };
+
   render = (): JSX.Element => {
     return (
       <div>
-        <Form data={this.createFieldDataObjects()} FormClass={this}>
-          {this.state.formFields
-            ? this.props.children({
-                fields: this.state.formFields,
-                submitBtn: <button onClick={() => this.onSubmit(this.state.formFields)}>Submit</button>
-              })
-            : null}
+        <Form formName={this.formName} data={this.createFieldDataObjects()} onFieldInput={this.onInput}>
+          <FormContext.Consumer>
+            {({ fieldsData, unpersistForm }) => {
+              return (
+                <div>
+                  {this.state.fieldPresentations
+                    ? this.props.children({
+                        fields: this.setFieldPresentationValues(this.state.fieldPresentations, fieldsData),
+                        submitAction: () => {
+                          this.onSubmit(fieldsData);
+                        },
+                        submitActionButton: (
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              this.onSubmit(fieldsData).then((success) => {
+                                if (success) unpersistForm();
+                              });
+                            }}>
+                            Submit
+                          </button>
+                        ),
+                      })
+                    : null}
+                </div>
+              );
+            }}
+          </FormContext.Consumer>
         </Form>
       </div>
     );

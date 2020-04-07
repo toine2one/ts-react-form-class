@@ -1,19 +1,19 @@
 import "reflect-metadata";
 import { textField } from "./decorators/TextField";
-import { FormClass } from "./classes/FormClass";
+import { FormBuilder } from "./classes/FormClass";
 import { IField } from "./interfaces/IForm";
 import { radioField } from "./decorators/RadioField";
 import { selectField } from "./decorators/SelectField";
 
 export enum Gender {
   Male,
-  Female
+  Female,
 }
 
 export enum CarBrand {
   Mercedes,
   BMW,
-  Volvo
+  Volvo,
 }
 
 export interface IPersonInputModel {
@@ -23,7 +23,7 @@ export interface IPersonInputModel {
   carBrand: CarBrand;
 }
 
-export class Example extends FormClass<IPersonInputModel> implements IPersonInputModel {
+export class Example extends FormBuilder<IPersonInputModel> implements IPersonInputModel {
   formName: string = "ExampleForm";
 
   @textField({
@@ -32,9 +32,9 @@ export class Example extends FormClass<IPersonInputModel> implements IPersonInpu
     validations: [
       {
         condition: (input: string) => input.length > 3,
-        errorMessage: "length needs to be higher than 3"
-      }
-    ]
+        errorMessage: "length needs to be higher than 3",
+      },
+    ],
   })
   firstName: string;
 
@@ -44,9 +44,9 @@ export class Example extends FormClass<IPersonInputModel> implements IPersonInpu
     validations: [
       {
         condition: (input: string) => input.length > 2,
-        errorMessage: "length needs to be higher than 2 "
-      }
-    ]
+        errorMessage: "length needs to be higher than 2 ",
+      },
+    ],
   })
   lastName: string;
 
@@ -56,13 +56,13 @@ export class Example extends FormClass<IPersonInputModel> implements IPersonInpu
     options: [
       {
         label: "Male",
-        value: Gender.Male
+        value: Gender.Male,
       },
       {
         label: "Female",
-        value: Gender.Female
-      }
-    ]
+        value: Gender.Female,
+      },
+    ],
   })
   gender: Gender;
 
@@ -72,17 +72,17 @@ export class Example extends FormClass<IPersonInputModel> implements IPersonInpu
     options: [
       {
         label: "Mercedes",
-        value: CarBrand.Mercedes
+        value: CarBrand.Mercedes,
       },
       {
         label: "BMW",
-        value: CarBrand.BMW
+        value: CarBrand.BMW,
       },
       {
         label: "Volvo",
-        value: CarBrand.Volvo
-      }
-    ]
+        value: CarBrand.Volvo,
+      },
+    ],
   })
   carBrand: CarBrand;
 
@@ -91,20 +91,22 @@ export class Example extends FormClass<IPersonInputModel> implements IPersonInpu
       firstName: "Toine",
       lastName: "koene",
       gender: Gender.Male,
-      carBrand: CarBrand.BMW
+      carBrand: CarBrand.BMW,
     };
     return Promise.resolve(mockData);
   }
 
   onInput(fieldName: string, data: IField): void {
-    console.log(fieldName, data);
+    // console.log(fieldName, data.value);
   }
 
-  async onSubmit(fields: IPersonInputModel): Promise<boolean> {
-    const newData = await this.feedDataAsync();
-    this.setState({
-      formData: newData
+  async onSubmit(fields: any): Promise<boolean> {
+    const newData: any = {};
+    Object.keys(fields).forEach((key) => {
+      return (newData[key] = fields[key].value);
     });
+
+    this.setFormData(newData);
     console.log(fields);
     return Promise.resolve(true);
   }

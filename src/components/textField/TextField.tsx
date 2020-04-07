@@ -16,9 +16,11 @@ export const TextField: FC<ITextFieldProps> = ({ name, buildData }) => {
   };
 
   return (
-    <span>
-      <input type="text" name={name} value={fieldsData[name] ? fieldsData[name].value : ""} onChange={e => onChange(e.target.value)} />
-      {!fieldsData[name] ? null : <p>{fieldsData[name].error}</p>}
-    </span>
+    <input
+      type="text"
+      name={name}
+      value={fieldsData[name] ? fieldsData[name].value : ""}
+      onChange={(e) => onChange(e.target.value)}
+    />
   );
 };

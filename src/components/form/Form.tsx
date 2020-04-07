@@ -1,78 +1,50 @@
 import React, { FC, useState, useEffect, createContext } from "react";
-import { IForm, IFormFieldsBuildData, ITextFieldBuildData, IFields, IRadioFieldBuildData, ISelectBuildData } from "../../interfaces/IForm";
-import { TextField } from "../textField/TextField";
-import { RadioField } from "../radioField/RadioField";
-import { SelectField } from "../selectField/SelectField";
+import { ITextFieldBuildData, IFields, IField } from "../../interfaces/IForm";
 
 interface IFormProps {
-  FormClass: IForm;
   data: IFields;
-  autoBuild?: boolean;
+  onFieldInput: (fieldName: string, data: IField) => void;
+  formName: string;
 }
 
 export interface IFormContextProps {
   fieldsData: IFields;
   setInputValue: (fieldProp: string, input: any, validationError?: string) => void;
-  onSubmit?: (fieldsData: IFields) => Promise<boolean>;
-  fieldsToOriginalProps: (buildData: IFields) => IFields;
-  resetFields: () => void;
   validateFieldInput(fieldBuildData: ITextFieldBuildData, input: any): string;
+  unpersistField: (fieldName: string) => void;
+  unpersistForm: () => void;
 }
 
 export const FormContext = createContext<IFormContextProps>({
   fieldsData: {},
   setInputValue: null,
-  fieldsToOriginalProps: null,
-  resetFields: null,
-  validateFieldInput: null
+  validateFieldInput: null,
+  unpersistField: null,
+  unpersistForm: null,
 });
 
-export const Form: FC<IFormProps> = ({ FormClass, data, children, autoBuild }) => {
-  const [init, setinit] = useState<boolean>(false);
+export const Form: FC<IFormProps> = ({ data, children, onFieldInput, formName }) => {
   const [fieldsData, setFieldsData] = useState<IFields>({});
-  const [fields, setFields] = useState<IFormFieldsBuildData>({});
-  const [formClass, setformClass] = useState<IForm>(null);
 
   useEffect(() => {
-    if (!init) {
-      FormClass.build().then(() => {
-        setFields(FormClass.formFieldsBuildData);
-        setinit(true);
-        setformClass(FormClass);
-      });
+    const getPersistedForm = () => {
+      const storedForm = localStorage.getItem(formName);
+      return storedForm ? JSON.parse(storedForm) : null;
+    };
+
+    const persistedFormData = getPersistedForm();
+    if (persistedFormData) {
+      for (let key in data) {
+        if (persistedFormData[key] && data[key]) {
+          data[key].value = persistedFormData[key];
+        }
+      }
     }
 
     if (data) {
       setFieldsData(data);
     }
-  }, [FormClass, fieldsData, formClass, init, data]);
-
-  const toOriginalPropName = (uniqueName: string) => {
-    const orgNameSplit = uniqueName.split("-");
-    if (orgNameSplit.length) {
-      return orgNameSplit[orgNameSplit.length - 1];
-    } else {
-      return uniqueName;
-    }
-  };
-
-  const fieldsToOriginalProps = (buildData: IFields) => {
-    const convertedBuildData: IFields = {};
-    for (let key in buildData) {
-      convertedBuildData[toOriginalPropName(key)] = {
-        ...buildData[key]
-      };
-    }
-    return convertedBuildData;
-  };
-
-  const resetFields = () => {
-    const fieldsToEmpty = { ...fieldsData };
-    for (let key in fieldsToEmpty) {
-      fieldsToEmpty[key].value = "";
-    }
-    setFieldsData(fieldsToEmpty);
-  };
+  }, [data, formName]);
 
   const validateFieldInput = (fieldBuildData: ITextFieldBuildData, input: any): string => {
     if (input === null || input === "") return null;
@@ -86,67 +58,48 @@ export const Form: FC<IFormProps> = ({ FormClass, data, children, autoBuild }) =
     return null;
   };
 
-  const setInputValue = (fieldProp: string, input: any, validationError?: string) => {
-    const field = fieldsData[fieldProp];
-
-    if (!field) {
-      setFieldsData({
-        ...fieldsData,
-        [fieldProp]: {
-          value: input,
-          error: validationError
-        }
-      });
+  const persistInLocalStorge = (fieldProp: string, data: any) => {
+    const persistedFormData = localStorage.getItem(formName);
+    if (persistedFormData) {
+      const parsed = JSON.parse(persistedFormData);
+      parsed[fieldProp] = data;
+      localStorage.setItem(formName, JSON.stringify(parsed));
     } else {
-      field.value = input;
-      field.error = validationError;
-      setFieldsData({
-        ...fieldsData,
-        [fieldProp]: field
-      });
+      localStorage.setItem(
+        formName,
+        JSON.stringify({
+          [fieldProp]: data,
+        })
+      );
     }
-
-    formClass.onInput(toOriginalPropName(fieldProp), { value: input, error: validationError });
   };
 
-  const renderFields = (): JSX.Element[] => {
-    const fieldElements: JSX.Element[] = [];
-    let field = null;
+  const unpersistFormLocalStorage = () => {
+    localStorage.removeItem(formName);
+  };
 
-    for (let key in fields) {
-      switch (fields[key].type) {
-        case "Text":
-          field = fields[key] as ITextFieldBuildData;
-          fieldElements.push(
-            <div key={`field-${key}`}>
-              <label htmlFor={key}>{field.label}</label>
-              <TextField name={key} buildData={field} />
-              {!fieldsData[key] ? null : <p>{fieldsData[key].error}</p>}
-            </div>
-          );
-          break;
-        case "Radio":
-          field = fields[key] as IRadioFieldBuildData;
-          fieldElements.push(
-            <div key={`field-${key}`}>
-              <label htmlFor={key}>{field.label}</label>
-              <RadioField name={key} options={field.options} />
-              {!fieldsData[key] ? null : <p>{fieldsData[key].error}</p>}
-            </div>
-          );
-          break;
-        case "Select":
-          field = fields[key] as ISelectBuildData;
-          fieldElements.push(
-            <div key={`field-${key}`}>
-              <label htmlFor={key}>{field.label}</label>
-              <SelectField name={key} options={field.options} />
-              {!fieldsData[key] ? null : <p>{fieldsData[key].error}</p>}
-            </div>
-          );
-      }
-    }
-    return fieldElements;
+  const unpersistFieldLocalStorage = (fieldName: string) => {
+    const persistedFormData = localStorage.getItem(formName);
+    const parsed = JSON.parse(persistedFormData);
+    delete parsed[fieldName];
+    localStorage.setItem(formName, JSON.stringify(parsed));
+  };
+
+  const setInputValue = (fieldProp: string, input: any, validationError?: string) => {
+    persistInLocalStorge(fieldProp, input);
+
+    setFieldsData({
+      ...fieldsData,
+      [fieldProp]: {
+        value: input,
+        error: validationError,
+      },
+    });
+
+    onFieldInput(fieldProp, {
+      error: "",
+      value: input,
+    });
   };
 
   return (
@@ -155,12 +108,10 @@ export const Form: FC<IFormProps> = ({ FormClass, data, children, autoBuild }) =
         fieldsData,
         setInputValue,
         validateFieldInput,
-        onSubmit: formClass ? formClass.onSubmit.bind(formClass) : null,
-        fieldsToOriginalProps,
-        resetFields
-      }}
-    >
-      <div>{autoBuild ? renderFields() : children}</div>
+        unpersistField: unpersistFieldLocalStorage,
+        unpersistForm: unpersistFormLocalStorage,
+      }}>
+      {children}
     </FormContext.Provider>
   );
 };
