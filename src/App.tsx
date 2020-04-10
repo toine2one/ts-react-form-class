@@ -12,9 +12,9 @@ function App() {
             <div>
               <div>{firstName.label}</div>
               <div className={firstName.hasChanged ? "input-changed" : ""}>{firstName.element}</div>
-              <div>{firstName.hasChanged ? "Changed" : null}</div>
               <div>{firstName.error}</div>
-              <div>{lastName.element}</div>
+              <div className={lastName.hasChanged ? "input-changed" : ""}>{lastName.element}</div>
+              <div>{lastName.error}</div>
               <div>{gender.element}</div>
               <div>{carBrand.element}</div>
               <div>{submitActionButton}</div>

@@ -1,5 +1,7 @@
 {
   "compilerOptions": {
+    "outDir": "./lib",
+    "declaration": false,
     "target": "es5",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
@@ -21,5 +23,6 @@
     "strictNullChecks": false,
     "noImplicitAny": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["node_modules"]
 }
