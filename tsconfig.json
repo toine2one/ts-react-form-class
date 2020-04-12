@@ -3,7 +3,11 @@
     "outDir": "./dist",
     "declaration": false,
     "target": "es5",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
@@ -20,8 +24,13 @@
     "emitDecoratorMetadata": true,
     "strictPropertyInitialization": false,
     "strictNullChecks": false,
-    "noImplicitAny": true
+    "noImplicitAny": true,
+    "noEmit": true
   },
-  "include": ["./src/**/*"],
-  "exclude": ["./node_modules"]
+  "include": [
+    "./src/**/*"
+  ],
+  "exclude": [
+    "./node_modules"
+  ]
 }

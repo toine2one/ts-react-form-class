@@ -6,7 +6,7 @@ function App() {
   return (
     <div className="App">
       <Example>
-        {({ fields, submitActionButton }) => {
+        {({ fields, submitActionButton, submitSuccessMessage }) => {
           const { firstName, lastName, gender, carBrand } = fields;
           return (
             <div>
@@ -18,6 +18,7 @@ function App() {
               <div>{gender.element}</div>
               <div>{carBrand.element}</div>
               <div>{submitActionButton}</div>
+              <div>{submitSuccessMessage}</div>
             </div>
           );
         }}

@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { textField } from "./decorators/TextField";
-import { FormBuilder } from "./classes/FormClass";
+import { FormBuilder, ISubmit } from "./classes/FormClass";
 import { IField } from "./interfaces/IForm";
 import { radioField } from "./decorators/RadioField";
 import { selectField } from "./decorators/SelectField";
@@ -25,6 +25,13 @@ export interface IPersonInputModel {
 
 export class Example extends FormBuilder<IPersonInputModel> implements IPersonInputModel {
   formName: string = "ExampleForm";
+
+  constructor(props: any) {
+    super(props);
+    this.onInput((fieldName: string, data: IField) => {
+      console.log(fieldName, data);
+    });
+  }
 
   @textField({
     type: "Text",
@@ -96,18 +103,16 @@ export class Example extends FormBuilder<IPersonInputModel> implements IPersonIn
     return Promise.resolve(mockData);
   }
 
-  onInput(fieldName: string, data: IField): void {
-    // console.log(fieldName, data.value);
-  }
-
-  async onSubmit(fields: any): Promise<boolean> {
+  async onSubmit(fields: any): Promise<ISubmit<IPersonInputModel>> {
     const newData: any = {};
     Object.keys(fields).forEach((key) => {
       return (newData[key] = fields[key].value);
     });
 
-    this.setFormData(newData);
-    console.log(fields);
-    return Promise.resolve(true);
+    return Promise.resolve({
+      success: true,
+      data: newData,
+      successMessage: "Form saved successfully",
+    });
   }
 }

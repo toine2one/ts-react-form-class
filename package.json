@@ -23,6 +23,9 @@
   "devDependencies": {
     "minimist": "^1.2.5"
   },
+  "resolutions": {
+    "minimist": "^1.2.5"
+  },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",

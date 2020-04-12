@@ -16,6 +16,9 @@ interface IFormBuilderState<T> {
   fieldPresentations: { [P in keyof T]: IFieldPresentation };
   inputData: IFields;
   componentReady: boolean;
+  submitSuccessMessage: string;
+  submitErrorMessage: string;
+  submitSuccess: boolean;
 }
 
 interface IFieldPresentation {
@@ -31,10 +34,20 @@ interface IFormPresentation<T> {
   fields: { [P in keyof T]: IFieldPresentation };
   submitAction: Function;
   submitActionButton: JSX.Element;
+  submitSuccessMessage: string;
+  submitErrorMessage: string;
+  submitSuccess: boolean;
 }
 
 interface IFormBuilderProps<T> {
   children: (formValues: IFormPresentation<T>) => JSX.Element;
+}
+
+export interface ISubmit<T> {
+  success: boolean;
+  errorMessage?: string;
+  successMessage?: string;
+  data?: T;
 }
 
 export const fieldMetadataKey = Symbol("formField");
@@ -46,10 +59,11 @@ export function getFieldMetaData(target: any, propertyKey: string) {
 export abstract class FormBuilder<T> extends Component<IFormBuilderProps<T>, IFormBuilderState<T>> {
   abstract formName: string;
   private formFieldsBuildData: IFormFieldsBuildData = {};
+  private onInputCb: (fieldName: string, data: IField) => void = null;
 
   abstract feedDataAsync(): Promise<T>;
-  abstract onInput?(fieldName: string, data: IField): void;
-  abstract onSubmit(fields: {}): Promise<boolean>;
+
+  abstract onSubmit(fields: {}): Promise<ISubmit<T>>;
 
   constructor(props: any) {
     super(props);
@@ -59,8 +73,15 @@ export abstract class FormBuilder<T> extends Component<IFormBuilderProps<T>, IFo
       formData: {},
       inputData: {},
       componentReady: false,
+      submitSuccessMessage: null,
+      submitErrorMessage: null,
+      submitSuccess: null,
     };
   }
+
+  protected onInput = (action: (fieldName: string, data: IField) => void): void => {
+    this.onInputCb = action;
+  };
 
   private validateInput = (fieldBuildData: ITextFieldBuildData, input: any): string => {
     if (input === null || input === "") return null;
@@ -87,10 +108,12 @@ export abstract class FormBuilder<T> extends Component<IFormBuilderProps<T>, IFo
       },
     });
 
-    this.onInput(fieldProp, {
-      error: "",
-      value: input,
-    });
+    if (this.onInputCb) {
+      this.onInputCb(fieldProp, {
+        error: "",
+        value: input,
+      });
+    }
   };
 
   private GetMetaDataFromProperties = (): any => {
@@ -223,6 +246,20 @@ export abstract class FormBuilder<T> extends Component<IFormBuilderProps<T>, IFo
     return fieldPresentations;
   };
 
+  private onSubmitForm = async () => {
+    const result = await this.onSubmit(this.state.inputData);
+    if (result.success && result.data) {
+      this.setFormData(result.data);
+    }
+    if (result.successMessage) {
+      this.setState({ submitSuccessMessage: result.successMessage });
+    }
+    if (result.errorMessage) {
+      this.setState({ submitErrorMessage: result.errorMessage });
+    }
+    this.setState({ submitSuccess: result.success });
+  };
+
   render = (): JSX.Element => {
     return (
       <div>
@@ -230,14 +267,17 @@ export abstract class FormBuilder<T> extends Component<IFormBuilderProps<T>, IFo
           {this.state.componentReady
             ? this.props.children({
                 fields: this.setFieldPresentationValues(this.createFieldPresentationObjects(), this.state.inputData),
+                submitSuccessMessage: this.state.submitSuccessMessage,
+                submitErrorMessage: this.state.submitErrorMessage,
+                submitSuccess: this.state.submitSuccess,
                 submitAction: () => {
-                  this.onSubmit(this.state.inputData);
+                  this.onSubmitForm();
                 },
                 submitActionButton: (
                   <button
                     onClick={(e) => {
                       e.preventDefault();
-                      this.onSubmit(this.state.inputData);
+                      this.onSubmitForm();
                     }}>
                     Submit
                   </button>
@@ -245,35 +285,6 @@ export abstract class FormBuilder<T> extends Component<IFormBuilderProps<T>, IFo
               })
             : null}
         </div>
-        {/* <Form formName={this.formName} data={this.createFieldDataObjects()} onFieldInput={this.onInput}>
-          <FormContext.Consumer>
-            {({ fieldsData, unpersistForm }) => {
-              return (
-                <div>
-                  {this.state.fieldPresentations
-                    ? this.props.children({
-                        fields: this.setFieldPresentationValues(this.state.fieldPresentations, fieldsData),
-                        submitAction: () => {
-                          this.onSubmit(fieldsData);
-                        },
-                        submitActionButton: (
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              this.onSubmit(fieldsData).then((success) => {
-                                if (success) unpersistForm();
-                              });
-                            }}>
-                            Submit
-                          </button>
-                        ),
-                      })
-                    : null}
-                </div>
-              );
-            }}
-          </FormContext.Consumer>
-        </Form> */}
       </div>
     );
   };
