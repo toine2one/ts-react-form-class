@@ -2,6 +2,7 @@
   "name": "form-class-builder",
   "version": "0.1.0",
   "private": true,
+  "main": "./dist/exports.js",
   "dependencies": {
     "@testing-library/jest-dom": "^4.2.4",
     "@testing-library/react": "^9.3.2",

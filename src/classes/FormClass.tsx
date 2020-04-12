@@ -7,15 +7,15 @@ import {
   ISelectBuildData,
 } from "../interfaces/IForm";
 import React, { Component } from "react";
-import { Form, FormContext } from "../components/form/Form";
 import { TextField } from "../components/textField/TextField";
-import { RadioField } from "../components/radioField/RadioField";
-import { SelectField } from "../components/selectField/SelectField";
+import { RadioField, SelectField } from "../exports";
 
 interface IFormBuilderState<T> {
   formData: any;
   formOutput: IFormPresentation<T>;
   fieldPresentations: { [P in keyof T]: IFieldPresentation };
+  inputData: IFields;
+  componentReady: boolean;
 }
 
 interface IFieldPresentation {
@@ -56,9 +56,42 @@ export abstract class FormBuilder<T> extends Component<IFormBuilderProps<T>, IFo
     this.state = {
       fieldPresentations: null,
       formOutput: null,
-      formData: null,
+      formData: {},
+      inputData: {},
+      componentReady: false,
     };
   }
+
+  private validateInput = (fieldBuildData: ITextFieldBuildData, input: any): string => {
+    if (input === null || input === "") return null;
+
+    for (let i = 0; i < fieldBuildData.validations.length; i++) {
+      if (!fieldBuildData.validations[i].condition(input)) {
+        return fieldBuildData.validations[i].errorMessage;
+      }
+    }
+
+    return null;
+  };
+
+  setInputValue = (fieldProp: string, input: any, validationError?: string) => {
+    // persistInLocalStorge(fieldProp, input);
+
+    this.setState({
+      inputData: {
+        ...this.state.inputData,
+        [fieldProp]: {
+          value: input,
+          error: validationError,
+        },
+      },
+    });
+
+    this.onInput(fieldProp, {
+      error: "",
+      value: input,
+    });
+  };
 
   private GetMetaDataFromProperties = (): any => {
     const formFieldsBuildData: IFormFieldsBuildData = {};
@@ -73,8 +106,8 @@ export abstract class FormBuilder<T> extends Component<IFormBuilderProps<T>, IFo
     this.formFieldsBuildData = formFieldsBuildData;
   };
 
-  private createFieldPresentationObjects() {
-    const fieldsObj: { [key: string]: IFieldPresentation } = {};
+  createFieldPresentationObjects(): { [P in keyof T]: IFieldPresentation } {
+    const fieldsObj: any = {};
 
     if (this.formFieldsBuildData) {
       for (let key in this.formFieldsBuildData) {
@@ -84,58 +117,79 @@ export abstract class FormBuilder<T> extends Component<IFormBuilderProps<T>, IFo
             fieldBuildData = fieldBuildData as ITextFieldBuildData;
             fieldsObj[key] = {
               label: fieldBuildData.label,
-              element: <TextField name={key} buildData={fieldBuildData} />,
+              element: (
+                <TextField
+                  setInputValue={this.setInputValue}
+                  data={this.state.inputData[key]}
+                  validateInput={this.validateInput}
+                  name={key}
+                  buildData={fieldBuildData}
+                />
+              ),
             };
             break;
           case "Radio":
             fieldBuildData = fieldBuildData as IRadioFieldBuildData;
             fieldsObj[key] = {
               label: fieldBuildData.label,
-              element: <RadioField name={key} buildData={fieldBuildData} />,
+              element: (
+                <RadioField
+                  data={this.state.inputData[key]}
+                  setInputValue={this.setInputValue}
+                  name={key}
+                  buildData={fieldBuildData}
+                />
+              ),
             };
             break;
           case "Select":
             fieldBuildData = fieldBuildData as ISelectBuildData;
             fieldsObj[key] = {
               label: fieldBuildData.label,
-              element: <SelectField name={key} buildData={fieldBuildData} />,
+              element: (
+                <SelectField
+                  data={this.state.inputData[key]}
+                  setInputValue={this.setInputValue}
+                  name={key}
+                  buildData={fieldBuildData}
+                />
+              ),
             };
             break;
         }
       }
     }
 
-    this.setState({
-      fieldPresentations: {
-        ...this.state.fieldPresentations,
-        ...fieldsObj,
-      },
-    });
+    return fieldsObj;
   }
 
-  private createFieldDataObjects = (): IFields => {
+  private createInputDataObjects = (): void => {
     const fields: IFields = {};
 
-    for (let key in this.state.formData) {
+    for (let key in this.formFieldsBuildData) {
       fields[key] = {
-        value: this.state.formData[key],
+        value: this.state.formData[key] ? this.state.formData[key] : null,
         error: null,
       };
     }
-    return fields;
+    this.setState({ inputData: fields });
   };
 
   protected setFormData(formData: T) {
-    this.setState({
-      formData,
-    });
+    if (formData) {
+      this.setState({
+        formData,
+      });
+    }
   }
 
   build = async (): Promise<void> => {
-    this.GetMetaDataFromProperties();
-    this.createFieldPresentationObjects();
     const initialData = await this.feedDataAsync();
     this.setFormData(initialData);
+    this.GetMetaDataFromProperties();
+    this.createInputDataObjects();
+    // this.createFieldPresentationObjects();
+    this.setState({ componentReady: true });
     return Promise.resolve();
   };
 
@@ -161,7 +215,9 @@ export abstract class FormBuilder<T> extends Component<IFormBuilderProps<T>, IFo
         fieldPresentations[key].value = fieldsData[key].value;
         fieldPresentations[key].error = fieldsData[key].error;
         fieldPresentations[key].hasError = this.fieldHasErrorCheck(fieldsData[key].error);
-        fieldPresentations[key].hasChanged = this.fieldHasChangedCheck(this.state.formData[key], fieldsData[key].value);
+        fieldPresentations[key].hasChanged = this.state.formData[key]
+          ? this.fieldHasChangedCheck(this.state.formData[key], fieldsData[key].value)
+          : false;
       }
     }
     return fieldPresentations;
@@ -170,7 +226,26 @@ export abstract class FormBuilder<T> extends Component<IFormBuilderProps<T>, IFo
   render = (): JSX.Element => {
     return (
       <div>
-        <Form formName={this.formName} data={this.createFieldDataObjects()} onFieldInput={this.onInput}>
+        <div>
+          {this.state.componentReady
+            ? this.props.children({
+                fields: this.setFieldPresentationValues(this.createFieldPresentationObjects(), this.state.inputData),
+                submitAction: () => {
+                  this.onSubmit(this.state.inputData);
+                },
+                submitActionButton: (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      this.onSubmit(this.state.inputData);
+                    }}>
+                    Submit
+                  </button>
+                ),
+              })
+            : null}
+        </div>
+        {/* <Form formName={this.formName} data={this.createFieldDataObjects()} onFieldInput={this.onInput}>
           <FormContext.Consumer>
             {({ fieldsData, unpersistForm }) => {
               return (
@@ -198,7 +273,7 @@ export abstract class FormBuilder<T> extends Component<IFormBuilderProps<T>, IFo
               );
             }}
           </FormContext.Consumer>
-        </Form>
+        </Form> */}
       </div>
     );
   };

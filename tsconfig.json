@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "outDir": "./lib",
+    "outDir": "./dist",
     "declaration": false,
     "target": "es5",
     "lib": ["dom", "dom.iterable", "esnext"],
@@ -15,7 +15,6 @@
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true,
     "jsx": "react",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
@@ -23,6 +22,6 @@
     "strictNullChecks": false,
     "noImplicitAny": true
   },
-  "include": ["src"],
-  "exclude": ["node_modules"]
+  "include": ["./src/**/*"],
+  "exclude": ["./node_modules"]
 }

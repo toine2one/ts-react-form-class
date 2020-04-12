@@ -1,22 +1,21 @@
-import React, { FC, useContext } from "react";
-import { FormContext } from "../form/Form";
-import { ISelectBuildData } from "../../interfaces/IForm";
+import React, { FC } from "react";
+import { ISelectBuildData, IField } from "../../interfaces/IForm";
 
 interface ISelectFieldProps {
   name: string;
   buildData: ISelectBuildData;
+  data: IField;
+  setInputValue: (fieldProp: string, input: any, validationError?: string) => void;
 }
 
-export const SelectField: FC<ISelectFieldProps> = ({ name, buildData }) => {
-  const { fieldsData, setInputValue } = useContext(FormContext);
-
+export const SelectField: FC<ISelectFieldProps> = ({ name, buildData, data, setInputValue }) => {
   const onChange = (input: any) => {
     setInputValue(name, input);
   };
 
   return (
     <div>
-      <select value={fieldsData[name] ? fieldsData[name].value : ""} onChange={(e) => onChange(e.target.value)}>
+      <select value={data ? data.value : ""} onChange={(e) => onChange(e.target.value)}>
         {buildData.options.map((opt) => {
           return (
             <option key={`field-option-${opt.value}`} value={opt.value}>

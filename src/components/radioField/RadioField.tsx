@@ -1,15 +1,14 @@
-import React, { FC, useContext } from "react";
-import { FormContext } from "../form/Form";
-import { IRadioFieldBuildData } from "../../interfaces/IForm";
+import React, { FC } from "react";
+import { IRadioFieldBuildData, IField } from "../../interfaces/IForm";
 
 interface IRadioFieldProps {
   name: string;
   buildData: IRadioFieldBuildData;
+  data: IField;
+  setInputValue: (fieldProp: string, input: any, validationError?: string) => void;
 }
 
-export const RadioField: FC<IRadioFieldProps> = ({ name, buildData }) => {
-  const { fieldsData, setInputValue } = useContext(FormContext);
-
+export const RadioField: FC<IRadioFieldProps> = ({ name, buildData, setInputValue, data }) => {
   const onChange = (input: any) => {
     setInputValue(name, input);
   };
@@ -24,7 +23,7 @@ export const RadioField: FC<IRadioFieldProps> = ({ name, buildData }) => {
               name={name}
               value={opt.value}
               onChange={(e) => onChange(e.target.value)}
-              checked={fieldsData[name] ? `${fieldsData[name].value}` === `${opt.value}` : false}></input>
+              checked={data ? `${data.value}` === `${opt.value}` : false}></input>
             <label>{opt.label}</label>
             <br></br>
           </span>
