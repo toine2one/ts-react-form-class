@@ -21,6 +21,12 @@ interface IFormBuilderState<T> {
   submitSuccess: boolean;
 }
 
+interface IFormBuilderProps<T> {
+  children: (formValues: IFormPresentation<T>) => JSX.Element;
+  resetOnSubmit: boolean;
+  afterSubmit?: (result: ISubmit<T>) => void;
+}
+
 interface IFieldPresentation {
   label: string;
   value?: string | number;
@@ -33,14 +39,11 @@ interface IFieldPresentation {
 interface IFormPresentation<T> {
   fields: { [P in keyof T]: IFieldPresentation };
   submitAction: Function;
-  submitActionButton: JSX.Element;
+  submitActionButton: (title: string) => JSX.Element;
+  resetButton: (title: string) => JSX.Element;
   submitSuccessMessage: string;
   submitErrorMessage: string;
   submitSuccess: boolean;
-}
-
-interface IFormBuilderProps<T> {
-  children: (formValues: IFormPresentation<T>) => JSX.Element;
 }
 
 export interface ISubmit<T> {
@@ -67,6 +70,7 @@ export abstract class FormBuilder<T> extends Component<IFormBuilderProps<T>, IFo
 
   constructor(props: any) {
     super(props);
+
     this.state = {
       fieldPresentations: null,
       formOutput: null,
@@ -186,12 +190,27 @@ export abstract class FormBuilder<T> extends Component<IFormBuilderProps<T>, IFo
     return fieldsObj;
   }
 
+  protected resetFormInput = () => {
+    const emptyInputData: IFields = {};
+
+    for (let key in this.state.inputData) {
+      emptyInputData[key] = {
+        value: "",
+        error: "",
+      };
+    }
+
+    this.setState({
+      inputData: emptyInputData,
+    });
+  };
+
   private createInputDataObjects = (): void => {
     const fields: IFields = {};
 
     for (let key in this.formFieldsBuildData) {
       fields[key] = {
-        value: this.state.formData[key] ? this.state.formData[key] : null,
+        value: this.state.formData[key] ? this.state.formData[key] : "",
         error: null,
       };
     }
@@ -207,11 +226,13 @@ export abstract class FormBuilder<T> extends Component<IFormBuilderProps<T>, IFo
   }
 
   build = async (): Promise<void> => {
+    if (!this.formName.length) {
+      throw Error("class property formName must contain a value");
+    }
     const initialData = await this.feedDataAsync();
     this.setFormData(initialData);
     this.GetMetaDataFromProperties();
     this.createInputDataObjects();
-    // this.createFieldPresentationObjects();
     this.setState({ componentReady: true });
     return Promise.resolve();
   };
@@ -248,8 +269,13 @@ export abstract class FormBuilder<T> extends Component<IFormBuilderProps<T>, IFo
 
   private onSubmitForm = async () => {
     const result = await this.onSubmit(this.state.inputData);
-    if (result.success && result.data) {
-      this.setFormData(result.data);
+    if (result.success) {
+      if (result.data) {
+        this.setFormData(result.data);
+      }
+      if (this.props.resetOnSubmit) {
+        this.resetFormInput();
+      }
     }
     if (result.successMessage) {
       this.setState({ submitSuccessMessage: result.successMessage });
@@ -258,6 +284,10 @@ export abstract class FormBuilder<T> extends Component<IFormBuilderProps<T>, IFo
       this.setState({ submitErrorMessage: result.errorMessage });
     }
     this.setState({ submitSuccess: result.success });
+
+    if (this.props.afterSubmit) {
+      this.props.afterSubmit(result);
+    }
   };
 
   render = (): JSX.Element => {
@@ -273,13 +303,22 @@ export abstract class FormBuilder<T> extends Component<IFormBuilderProps<T>, IFo
                 submitAction: () => {
                   this.onSubmitForm();
                 },
-                submitActionButton: (
+                submitActionButton: (title: string) => (
                   <button
                     onClick={(e) => {
                       e.preventDefault();
                       this.onSubmitForm();
                     }}>
-                    Submit
+                    {title}
+                  </button>
+                ),
+                resetButton: (title: string) => (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      this.onSubmitForm();
+                    }}>
+                    {title}
                   </button>
                 ),
               })

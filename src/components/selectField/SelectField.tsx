@@ -12,7 +12,7 @@ export const SelectField: FC<ISelectFieldProps> = ({ name, buildData, data, setI
   const onChange = (input: any) => {
     setInputValue(name, input);
   };
-
+  Symbol("Example-form");
   return (
     <div>
       <select value={data ? data.value : ""} onChange={(e) => onChange(e.target.value)}>

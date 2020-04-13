@@ -8,6 +8,14 @@ interface IFormBuilderState<T> {
     };
     inputData: IFields;
     componentReady: boolean;
+    submitSuccessMessage: string;
+    submitErrorMessage: string;
+    submitSuccess: boolean;
+}
+interface IFormBuilderProps<T> {
+    children: (formValues: IFormPresentation<T>) => JSX.Element;
+    resetOnSubmit: boolean;
+    afterSubmit?: (result: ISubmit<T>) => void;
 }
 interface IFieldPresentation {
     label: string;
@@ -22,26 +30,35 @@ interface IFormPresentation<T> {
         [P in keyof T]: IFieldPresentation;
     };
     submitAction: Function;
-    submitActionButton: JSX.Element;
+    submitActionButton: (title: string) => JSX.Element;
+    resetButton: (title: string) => JSX.Element;
+    submitSuccessMessage: string;
+    submitErrorMessage: string;
+    submitSuccess: boolean;
 }
-interface IFormBuilderProps<T> {
-    children: (formValues: IFormPresentation<T>) => JSX.Element;
+export interface ISubmit<T> {
+    success: boolean;
+    errorMessage?: string;
+    successMessage?: string;
+    data?: T;
 }
 export declare const fieldMetadataKey: unique symbol;
 export declare function getFieldMetaData(target: any, propertyKey: string): any;
 export declare abstract class FormBuilder<T> extends Component<IFormBuilderProps<T>, IFormBuilderState<T>> {
     abstract formName: string;
     private formFieldsBuildData;
+    private onInputCb;
     abstract feedDataAsync(): Promise<T>;
-    abstract onInput?(fieldName: string, data: IField): void;
-    abstract onSubmit(fields: {}): Promise<boolean>;
+    abstract onSubmit(fields: {}): Promise<ISubmit<T>>;
     constructor(props: any);
+    protected onInput: (action: (fieldName: string, data: IField) => void) => void;
     private validateInput;
     setInputValue: (fieldProp: string, input: any, validationError?: string) => void;
     private GetMetaDataFromProperties;
     createFieldPresentationObjects(): {
         [P in keyof T]: IFieldPresentation;
     };
+    protected resetFormInput: () => void;
     private createInputDataObjects;
     protected setFormData(formData: T): void;
     build: () => Promise<void>;
@@ -49,6 +66,7 @@ export declare abstract class FormBuilder<T> extends Component<IFormBuilderProps
     fieldHasChangedCheck: (serverValue: any, inputValue: any) => boolean;
     fieldHasErrorCheck: (error: string) => boolean;
     setFieldPresentationValues: (fieldPresentations: { [P in keyof T]: IFieldPresentation; }, fieldsData: IFields) => { [P in keyof T]: IFieldPresentation; };
+    private onSubmitForm;
     render: () => JSX.Element;
 }
 export {};

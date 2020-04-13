@@ -1,6 +1,5 @@
 import "reflect-metadata";
-import { FormBuilder } from "./classes/FormClass";
-import { IField } from "./interfaces/IForm";
+import { FormBuilder, ISubmit } from "./classes/FormClass";
 export declare enum Gender {
     Male = 0,
     Female = 1
@@ -18,11 +17,11 @@ export interface IPersonInputModel {
 }
 export declare class Example extends FormBuilder<IPersonInputModel> implements IPersonInputModel {
     formName: string;
+    constructor(props: any);
     firstName: string;
     lastName: string;
     gender: Gender;
     carBrand: CarBrand;
     feedDataAsync(): Promise<IPersonInputModel>;
-    onInput(fieldName: string, data: IField): void;
-    onSubmit(fields: any): Promise<boolean>;
+    onSubmit(fields: any): Promise<ISubmit<IPersonInputModel>>;
 }

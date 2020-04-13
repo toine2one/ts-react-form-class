@@ -70,6 +70,10 @@ var FormBuilder = /** @class */ (function (_super) {
     function FormBuilder(props) {
         var _this = _super.call(this, props) || this;
         _this.formFieldsBuildData = {};
+        _this.onInputCb = null;
+        _this.onInput = function (action) {
+            _this.onInputCb = action;
+        };
         _this.validateInput = function (fieldBuildData, input) {
             if (input === null || input === "")
                 return null;
@@ -89,10 +93,12 @@ var FormBuilder = /** @class */ (function (_super) {
                     error: validationError,
                 }, _a)),
             });
-            _this.onInput(fieldProp, {
-                error: "",
-                value: input,
-            });
+            if (_this.onInputCb) {
+                _this.onInputCb(fieldProp, {
+                    error: "",
+                    value: input,
+                });
+            }
         };
         _this.GetMetaDataFromProperties = function () {
             var formFieldsBuildData = {};
@@ -104,11 +110,23 @@ var FormBuilder = /** @class */ (function (_super) {
             });
             _this.formFieldsBuildData = formFieldsBuildData;
         };
+        _this.resetFormInput = function () {
+            var emptyInputData = {};
+            for (var key in _this.state.inputData) {
+                emptyInputData[key] = {
+                    value: "",
+                    error: "",
+                };
+            }
+            _this.setState({
+                inputData: emptyInputData,
+            });
+        };
         _this.createInputDataObjects = function () {
             var fields = {};
             for (var key in _this.formFieldsBuildData) {
                 fields[key] = {
-                    value: _this.state.formData[key] ? _this.state.formData[key] : null,
+                    value: _this.state.formData[key] ? _this.state.formData[key] : "",
                     error: null,
                 };
             }
@@ -118,13 +136,16 @@ var FormBuilder = /** @class */ (function (_super) {
             var initialData;
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, this.feedDataAsync()];
+                    case 0:
+                        if (!this.formName.length) {
+                            throw Error("class property formName must contain a value");
+                        }
+                        return [4 /*yield*/, this.feedDataAsync()];
                     case 1:
                         initialData = _a.sent();
                         this.setFormData(initialData);
                         this.GetMetaDataFromProperties();
                         this.createInputDataObjects();
-                        // this.createFieldPresentationObjects();
                         this.setState({ componentReady: true });
                         return [2 /*return*/, Promise.resolve()];
                 }
@@ -154,18 +175,54 @@ var FormBuilder = /** @class */ (function (_super) {
             }
             return fieldPresentations;
         };
+        _this.onSubmitForm = function () { return __awaiter(_this, void 0, void 0, function () {
+            var result;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.onSubmit(this.state.inputData)];
+                    case 1:
+                        result = _a.sent();
+                        if (result.success) {
+                            if (result.data) {
+                                this.setFormData(result.data);
+                            }
+                            if (this.props.resetOnSubmit) {
+                                this.resetFormInput();
+                            }
+                        }
+                        if (result.successMessage) {
+                            this.setState({ submitSuccessMessage: result.successMessage });
+                        }
+                        if (result.errorMessage) {
+                            this.setState({ submitErrorMessage: result.errorMessage });
+                        }
+                        this.setState({ submitSuccess: result.success });
+                        if (this.props.afterSubmit) {
+                            this.props.afterSubmit(result);
+                        }
+                        return [2 /*return*/];
+                }
+            });
+        }); };
         _this.render = function () {
             return (React.createElement("div", null,
                 React.createElement("div", null, _this.state.componentReady
                     ? _this.props.children({
                         fields: _this.setFieldPresentationValues(_this.createFieldPresentationObjects(), _this.state.inputData),
+                        submitSuccessMessage: _this.state.submitSuccessMessage,
+                        submitErrorMessage: _this.state.submitErrorMessage,
+                        submitSuccess: _this.state.submitSuccess,
                         submitAction: function () {
-                            _this.onSubmit(_this.state.inputData);
+                            _this.onSubmitForm();
                         },
-                        submitActionButton: (React.createElement("button", { onClick: function (e) {
+                        submitActionButton: function (title) { return (React.createElement("button", { onClick: function (e) {
                                 e.preventDefault();
-                                _this.onSubmit(_this.state.inputData);
-                            } }, "Submit")),
+                                _this.onSubmitForm();
+                            } }, title)); },
+                        resetButton: function (title) { return (React.createElement("button", { onClick: function (e) {
+                                e.preventDefault();
+                                _this.onSubmitForm();
+                            } }, title)); },
                     })
                     : null)));
         };
@@ -175,6 +232,9 @@ var FormBuilder = /** @class */ (function (_super) {
             formData: {},
             inputData: {},
             componentReady: false,
+            submitSuccessMessage: null,
+            submitErrorMessage: null,
+            submitSuccess: null,
         };
         return _this;
     }

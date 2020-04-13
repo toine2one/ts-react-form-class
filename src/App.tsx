@@ -5,8 +5,8 @@ import "./App.css";
 function App() {
   return (
     <div className="App">
-      <Example>
-        {({ fields, submitActionButton, submitSuccessMessage }) => {
+      <Example resetOnSubmit={true}>
+        {({ fields, submitActionButton, submitSuccessMessage, resetButton }) => {
           const { firstName, lastName, gender, carBrand } = fields;
           return (
             <div>
@@ -17,8 +17,9 @@ function App() {
               <div>{lastName.error}</div>
               <div>{gender.element}</div>
               <div>{carBrand.element}</div>
-              <div>{submitActionButton}</div>
+              <div>{submitActionButton("submit")}</div>
               <div>{submitSuccessMessage}</div>
+              <div>{resetButton("Reset here")}</div>
             </div>
           );
         }}

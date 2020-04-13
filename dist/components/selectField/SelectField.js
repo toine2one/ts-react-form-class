@@ -4,6 +4,7 @@ export var SelectField = function (_a) {
     var onChange = function (input) {
         setInputValue(name, input);
     };
+    Symbol("Example-form");
     return (React.createElement("div", null,
         React.createElement("select", { value: data ? data.value : "", onChange: function (e) { return onChange(e.target.value); } }, buildData.options.map(function (opt) {
             return (React.createElement("option", { key: "field-option-" + opt.value, value: opt.value }, opt.label));

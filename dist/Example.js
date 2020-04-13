@@ -74,9 +74,12 @@ export var CarBrand;
 })(CarBrand || (CarBrand = {}));
 var Example = /** @class */ (function (_super) {
     __extends(Example, _super);
-    function Example() {
-        var _this = _super !== null && _super.apply(this, arguments) || this;
-        _this.formName = "ExampleForm";
+    function Example(props) {
+        var _this = _super.call(this, props) || this;
+        _this.formName = "Example-form";
+        _this.onInput(function (fieldName, data) {
+            console.log(fieldName, data);
+        });
         return _this;
     }
     Example.prototype.feedDataAsync = function () {
@@ -86,10 +89,7 @@ var Example = /** @class */ (function (_super) {
             gender: Gender.Male,
             carBrand: CarBrand.BMW,
         };
-        return Promise.resolve(mockData);
-    };
-    Example.prototype.onInput = function (fieldName, data) {
-        // console.log(fieldName, data.value);
+        return Promise.resolve(null);
     };
     Example.prototype.onSubmit = function (fields) {
         return __awaiter(this, void 0, void 0, function () {
@@ -99,9 +99,10 @@ var Example = /** @class */ (function (_super) {
                 Object.keys(fields).forEach(function (key) {
                     return (newData[key] = fields[key].value);
                 });
-                this.setFormData(newData);
-                console.log(fields);
-                return [2 /*return*/, Promise.resolve(true)];
+                return [2 /*return*/, Promise.resolve({
+                        success: true,
+                        successMessage: "Form saved successfully",
+                    })];
             });
         });
     };

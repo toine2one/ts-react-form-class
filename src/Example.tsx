@@ -24,7 +24,7 @@ export interface IPersonInputModel {
 }
 
 export class Example extends FormBuilder<IPersonInputModel> implements IPersonInputModel {
-  formName: string = "ExampleForm";
+  formName: string = "Example-form";
 
   constructor(props: any) {
     super(props);
@@ -100,7 +100,7 @@ export class Example extends FormBuilder<IPersonInputModel> implements IPersonIn
       gender: Gender.Male,
       carBrand: CarBrand.BMW,
     };
-    return Promise.resolve(mockData);
+    return Promise.resolve(null);
   }
 
   async onSubmit(fields: any): Promise<ISubmit<IPersonInputModel>> {
@@ -111,7 +111,6 @@ export class Example extends FormBuilder<IPersonInputModel> implements IPersonIn
 
     return Promise.resolve({
       success: true,
-      data: newData,
       successMessage: "Form saved successfully",
     });
   }
